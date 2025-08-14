@@ -186,6 +186,13 @@ The Gym Class Scheduling and Membership Management System is a comprehensive bac
 }
 ```
 
+## 📊 Relational Diagram
+
+The following diagram illustrates the relationships between the `User`, `ClassSchedule`, and `Booking` models:
+
+![Relational Diagram](images/gym_relational_diagram.png)
+
+
 ## 🔑 Admin Credentials
 
 Use these credentials to test admin functionalities:
