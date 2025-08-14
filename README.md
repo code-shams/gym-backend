@@ -1,4 +1,4 @@
-# 🏋️‍♂️ Gym Class Scheduling and Membership Management System
+# Gym Class Scheduling and Membership Management System
 
 ## 📖 Project Overview
 
@@ -9,6 +9,7 @@ The Gym Class Scheduling and Membership Management System is a comprehensive bac
 - **Class Scheduling**: Admins can create and manage class schedules with business rule enforcement
 - **Booking Management**: Trainees can book and cancel class schedules
 - **Trainer Management**: Complete CRUD operations for trainer profiles
+- **Global Error Handling**: Standardized error responses with comprehensive validation
 - **Business Rule Enforcement**: Automated validation for scheduling limits and capacity constraints
 
 ## 🛠️ Technology Stack
@@ -18,6 +19,7 @@ The Gym Class Scheduling and Membership Management System is a comprehensive bac
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JSON Web Tokens (JWT)
 - **Password Encryption**: bcryptjs
+- **Error Handling**: Global error middleware with standardized responses
 - **Deployment**: Vercel (Serverless)
 - **Database Hosting**: MongoDB Atlas
 
@@ -42,8 +44,8 @@ The Gym Class Scheduling and Membership Management System is a comprehensive bac
 **Login Request Body:**
 ```json
 {
-  "email": "admin@gym.com",
-  "password": "admin123"
+  "email": "john@example.com",
+  "password": "password123"
 }
 ```
 
@@ -190,7 +192,7 @@ Use these credentials to test admin functionalities:
 
 ```
 Email: admin@gym.com
-Password: admin123
+Password: 12345
 ```
 
 ## 🚀 Instructions to Run Locally
@@ -205,7 +207,7 @@ Password: admin123
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd gym-management-system
+   cd gym-backend
    ```
 
 2. **Install dependencies**
@@ -216,8 +218,7 @@ Password: admin123
 3. **Create environment variables**
    Create a `.env` file in the root directory:
    ```env
-   MONGO_URI=mongodb://localhost:27017/gym-management
-   # OR for MongoDB Atlas:
+   For MongoDB Atlas:
    # MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/gym-management
    
    JWT_SECRET=your-super-secret-jwt-key-here
@@ -253,9 +254,7 @@ Visit `http://localhost:5000` - you should see "Gym API Running"
 
 ## 🌐 Live Hosting Link
 
-**Live API Base URL**: `https://your-vercel-app.vercel.app`
-
-*Replace with your actual Vercel deployment URL*
+**Live API Base URL**: `https://gym-backend-dusky.vercel.app/`
 
 ## 📋 Postman Documentation
 
@@ -266,7 +265,7 @@ Visit `http://localhost:5000` - you should see "Gym API Running"
 
 ### Environment Variables
 Create a Postman environment with:
-- `base_url`: `https://your-vercel-app.vercel.app` (or `http://localhost:5000` for local)
+- `base_url`: `https://gym-backend-dusky.vercel.app/` (or `http://localhost:5000` for local)
 - `auth_token`: (will be set after login)
 
 ### Testing Workflow
@@ -279,7 +278,7 @@ Content-Type: application/json
 
 {
   "email": "admin@gym.com",
-  "password": "admin123"
+  "password": "12345"
 }
 
 # Copy the token from response and set as auth_token in environment
@@ -348,11 +347,26 @@ Content-Type: application/json
 }
 ```
 
-#### 6. **View Bookings**
+#### 6. **View Bookings & Error Testing**
 ```bash
 # View My Bookings (Trainee only)
 GET {{base_url}}/bookings/my
 Authorization: Bearer {{auth_token}}
+
+# Test error scenarios:
+# 1. Missing token
+GET {{base_url}}/bookings/my
+# Expected: 401 "Authorization header missing"
+
+# 2. Invalid token
+GET {{base_url}}/bookings/my
+Authorization: Bearer invalid-token
+# Expected: 401 "Invalid token"
+
+# 3. Wrong role (admin trying trainee route)
+GET {{base_url}}/bookings/my
+Authorization: Bearer {{admin_token}}
+# Expected: 403 "Forbidden: Access denied"
 ```
 
 ## 🧪 Testing Key Features
@@ -367,24 +381,52 @@ Authorization: Bearer {{auth_token}}
 ### **Feature 2: Class Scheduling**
 1. As admin, create class schedules using `POST /schedules`
 2. Test business rules:
-   - Try creating more than 5 schedules per day (should fail)
-   - Try creating classes with duration other than 2 hours (should fail)
-   - Try overlapping schedules for same trainer (should fail)
+   - Try creating more than 5 schedules per day (should fail with 400)
+   - Try creating classes with duration other than 2 hours (should fail with 400)
+   - Try overlapping schedules for same trainer (should fail with 400)
 3. Login as trainer and view assigned schedules using `GET /schedules/my`
 
 ### **Feature 3: Class Booking**
 1. Register/login as trainee
 2. Book available classes using `POST /bookings`
 3. Test booking limits:
-   - Try booking same class twice (should fail)
-   - Create 10 bookings for one schedule, then try 11th (should fail)
+   - Try booking same class twice (should fail with 400)
+   - Create 10 bookings for one schedule, then try 11th (should fail with 400)
 4. View personal bookings using `GET /bookings/my`
 5. Cancel bookings using `DELETE /bookings/:bookingId`
 
 ### **Feature 4: Authentication & Authorization**
 1. Test accessing admin routes without admin role (should fail with 403)
 2. Test accessing protected routes without authentication (should fail with 401)
-3. Test token expiration after 24 hours
+3. Test with invalid/expired tokens (should fail with 401)
+
+### **Feature 5: Error Handling Testing**
+1. **Validation Errors**: Send requests with missing/invalid data
+   ```bash
+   POST /users with empty name → 400 "name is required"
+   ```
+
+2. **Duplicate Data**: Try creating users with existing emails
+   ```bash
+   POST /users with existing email → 400 "email already exists"
+   ```
+
+3. **Invalid IDs**: Use malformed ObjectIds in requests
+   ```bash
+   GET /users/invalid-id → 404 "Resource not found"
+   ```
+
+4. **JWT Errors**: Test with invalid or missing tokens
+   ```bash
+   GET /users without token → 401 "Authorization header missing"
+   GET /users with invalid token → 401 "Invalid token"
+   ```
+
+5. **Business Rules**: Test system limits
+   ```bash
+   Create 6 schedules/day → 400 "Max 5 schedules allowed per day"
+   Book 11th trainee → 400 "This class is fully booked"
+   ```
 
 ## 🔒 Business Rules Validation
 
@@ -397,29 +439,110 @@ The system enforces the following business rules:
 - ✅ **No overlapping schedules for the same trainer**
 - ✅ **Role-based access control for all operations**
 
-## ⚠️ Error Responses
+## ⚠️ Error Handling & Responses
 
-Common error responses you might encounter:
+The system implements comprehensive global error handling middleware that provides consistent error responses across all endpoints.
+
+### Error Response Format
+All errors follow a standardized format:
 
 ```json
-// Unauthorized access
 {
-  "message": "User not authenticated"
+  "success": false,
+  "message": "Error description",
+  "stack": "Error stack trace (development only)"
+}
+```
+
+### Common Error Types
+
+#### **Authentication Errors (401)**
+```json
+// Missing token
+{
+  "success": false,
+  "message": "Authorization header missing"
 }
 
-// Forbidden access
+// Invalid token
 {
+  "success": false,
+  "message": "Invalid token"
+}
+
+// Expired token
+{
+  "success": false,
+  "message": "Token expired"
+}
+```
+
+#### **Authorization Errors (403)**
+```json
+// Insufficient permissions
+{
+  "success": false,
   "message": "Forbidden: Access denied"
 }
+```
 
-// Validation error
+#### **Validation Errors (400)**
+```json
+// Missing required fields
 {
-  "message": "Class duration must be exactly 2 hours"
+  "success": false,
+  "message": "name is required, email must be valid"
 }
 
-// Business rule violation
+// Duplicate data
 {
+  "success": false,
+  "message": "email already exists"
+}
+
+// Invalid data format
+{
+  "success": false,
+  "message": "Invalid email format"
+}
+```
+
+#### **Business Rule Violations (400)**
+```json
+// Schedule limit exceeded
+{
+  "success": false,
   "message": "Max 5 schedules allowed per day"
+}
+
+// Class capacity full
+{
+  "success": false,
+  "message": "This class is fully booked"
+}
+
+// Invalid class duration
+{
+  "success": false,
+  "message": "Class duration must be exactly 2 hours"
+}
+```
+
+#### **Resource Not Found (404)**
+```json
+// Invalid ID format or non-existent resource
+{
+  "success": false,
+  "message": "Resource not found"
+}
+```
+
+#### **Server Errors (500)**
+```json
+// Unexpected server errors
+{
+  "success": false,
+  "message": "Internal Server Error"
 }
 ```
 
@@ -429,4 +552,4 @@ For any issues or questions, please refer to the API endpoints documentation abo
 
 ---
 
-**Happy Testing! 🏋️‍♂️**
+**Happy Testing!**
