@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 
-//? Admin creates a trainer
+//? Admin: create trainer
 const createUser = async (req, res, next) => {
     try {
         const { name, email, password } = req.body;
@@ -42,7 +42,7 @@ const getAllTrainers = async (req, res, next) => {
     }
 };
 
-//? Admin updating a trainer
+//? Admin: Update a trainer
 const updateTrainer = async (req, res, next) => {
     try {
         const trainerId = req.params.id;
@@ -79,7 +79,7 @@ const updateTrainer = async (req, res, next) => {
     }
 };
 
-//? Admin deleting a trainer
+//? Admin: deleting a trainer
 const deleteTrainer = async (req, res, next) => {
     try {
         const trainerId = req.params.id;
@@ -95,4 +95,52 @@ const deleteTrainer = async (req, res, next) => {
     }
 };
 
-module.exports = { createUser, getAllTrainers, updateTrainer, deleteTrainer };
+//? Trainee: update own profile
+const updateProfile = async (req, res, next) => {
+    try {
+        const traineeId = req.user.id;
+        const { name, email, password } = req.body;
+
+        const trainee = await User.findById(traineeId);
+        if (!trainee) {
+            return res.status(404).json({ message: "Trainee not found" });
+        }
+
+        if (name) trainee.name = name;
+        if (email) {
+            const existingUser = await User.findOne({ email });
+            if (existingUser && existingUser._id.toString() !== traineeId) {
+                return res
+                    .status(400)
+                    .json({ message: "Email already in use" });
+            }
+            trainee.email = email;
+        }
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            trainee.password = hashedPassword;
+        }
+
+        await trainee.save();
+
+        res.status(200).json({
+            message: "Profile updated successfully",
+            trainee: {
+                _id: trainee._id,
+                name: trainee.name,
+                email: trainee.email,
+                role: trainee.role,
+            },
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = {
+    createUser,
+    getAllTrainers,
+    updateTrainer,
+    deleteTrainer,
+    updateProfile,
+};

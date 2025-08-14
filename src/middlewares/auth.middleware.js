@@ -10,13 +10,13 @@ const verifyToken = (req, res, next) => {
                 .json({ message: "Authorization header missing" });
         }
 
-        // Authorization: Bearer <token>
+        
         const token = authHeader.split(" ")[1];
         if (!token) {
             return res.status(401).json({ message: "Token missing" });
         }
 
-        // Verify token
+        
         jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
             if (err) {
                 return res
@@ -24,7 +24,7 @@ const verifyToken = (req, res, next) => {
                     .json({ message: "Invalid or expired token" });
             }
 
-            req.user = decoded; // Store decoded data in request
+            req.user = decoded;
             next();
         });
     } catch (error) {

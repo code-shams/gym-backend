@@ -6,6 +6,7 @@ const {
     getAllTrainers,
     updateTrainer,
     deleteTrainer,
+    updateProfile,
 } = require("../controllers/user.controller");
 
 const router = express.Router();
@@ -14,16 +15,19 @@ router.get("/profile", verifyToken, (req, res) => {
     res.json({ message: "Profile data", user: req.user });
 });
 
-//? Admin-only: create a trainer
+//? Trainee: update own profile
+router.put("/profile", verifyToken, verifyRole("trainee"), updateProfile);
+
+//? Admin: create a trainer
 router.post("/", verifyToken, verifyRole("admin"), createUser);
 
-//? Admin-only: get all trainers
+//? Admin: get all trainers
 router.get("/", verifyToken, verifyRole("admin"), getAllTrainers);
 
-//? Admin-only: update trainer
+//? Admin: update trainer
 router.put("/:id", verifyToken, verifyRole("admin"), updateTrainer);
 
-//? Admin-only: delete trainer
+//? Admin: delete trainer
 router.delete("/:id", verifyToken, verifyRole("admin"), deleteTrainer);
 
 module.exports = router;
