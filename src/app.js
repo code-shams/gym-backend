@@ -15,7 +15,7 @@ app.use(express.json());
 
 //? Routes
 app.use("/auth", authRoutes);
-app.use("/user", userRoutes);
+app.use("/users", userRoutes);
 app.use("/schedules", classScheduleRoutes);
 app.use("/bookings", bookingRoutes);
 
