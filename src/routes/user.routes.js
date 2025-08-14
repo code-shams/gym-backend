@@ -1,7 +1,7 @@
 const express = require("express");
 const verifyToken = require("../middlewares/auth.middleware");
 const verifyRole = require("../middlewares/role.middleware");
-const { createUser } = require("../controllers/user.controller");
+const { createUser, getAllTrainers } = require("../controllers/user.controller");
 
 const router = express.Router();
 
@@ -11,5 +11,8 @@ router.get("/profile", verifyToken, (req, res) => {
 
 //? Admin-only: create a trainer
 router.post("/", verifyToken, verifyRole("admin"), createUser);
+
+//? Admin-only: get all trainers
+router.get("/", verifyToken, verifyRole("admin"), getAllTrainers);
 
 module.exports = router;

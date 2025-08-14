@@ -14,7 +14,6 @@ const createUser = async (req, res, next) => {
                 .json({ message: "Email already registered" });
         }
 
-
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const user = await User.create({
@@ -43,4 +42,45 @@ const getAllTrainers = async (req, res, next) => {
     }
 };
 
-module.exports = { createUser, getAllTrainers };
+//? Admin updating a trainer
+const updateTrainer = async (req, res, next) => {
+    try {
+        const trainerId = req.params.id;
+        const { name, email } = req.body;
+
+        // Find the trainer
+        const trainer = await User.findById(trainerId);
+        if (!trainer || trainer.role !== "trainer") {
+            return res.status(404).json({ message: "Trainer not found" });
+        }
+
+        // Update fields if provided
+        if (name) trainer.name = name;
+        if (email) {
+            // Check if new email is already taken
+            const existingUser = await User.findOne({ email });
+            if (existingUser && existingUser._id.toString() !== trainerId) {
+                return res
+                    .status(400)
+                    .json({ message: "Email already in use" });
+            }
+            trainer.email = email;
+        }
+
+        await trainer.save();
+
+        res.status(200).json({
+            message: "Trainer updated successfully",
+            trainer: {
+                _id: trainer._id,
+                name: trainer.name,
+                email: trainer.email,
+                role: trainer.role,
+            },
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = { createUser, getAllTrainers, updateTrainer };
