@@ -47,17 +47,13 @@ const updateTrainer = async (req, res, next) => {
     try {
         const trainerId = req.params.id;
         const { name, email } = req.body;
-
-        // Find the trainer
         const trainer = await User.findById(trainerId);
         if (!trainer || trainer.role !== "trainer") {
             return res.status(404).json({ message: "Trainer not found" });
         }
 
-        // Update fields if provided
         if (name) trainer.name = name;
         if (email) {
-            // Check if new email is already taken
             const existingUser = await User.findOne({ email });
             if (existingUser && existingUser._id.toString() !== trainerId) {
                 return res
@@ -83,4 +79,20 @@ const updateTrainer = async (req, res, next) => {
     }
 };
 
-module.exports = { createUser, getAllTrainers, updateTrainer };
+//? Admin deleting a trainer
+const deleteTrainer = async (req, res, next) => {
+    try {
+        const trainerId = req.params.id;
+        const trainer = await User.findById(trainerId);
+        if (!trainer || trainer.role !== "trainer") {
+            return res.status(404).json({ message: "Trainer not found" });
+        }
+        await User.deleteOne({ _id: trainerId });
+
+        res.status(200).json({ message: "Trainer deleted successfully" });
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = { createUser, getAllTrainers, updateTrainer, deleteTrainer };

@@ -5,6 +5,7 @@ const {
     createUser,
     getAllTrainers,
     updateTrainer,
+    deleteTrainer,
 } = require("../controllers/user.controller");
 
 const router = express.Router();
@@ -21,5 +22,8 @@ router.get("/", verifyToken, verifyRole("admin"), getAllTrainers);
 
 //? Admin-only: update trainer
 router.put("/:id", verifyToken, verifyRole("admin"), updateTrainer);
+
+//? Admin-only: delete trainer
+router.delete("/:id", verifyToken, verifyRole("admin"), deleteTrainer);
 
 module.exports = router;
