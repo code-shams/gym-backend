@@ -1,11 +1,35 @@
-const ClassSchedule = require("../models/ClassSchedule.model");
-const User = require("../models/User.model");
+const ClassSchedule = require("../models/ClassSchedule");
+const User = require("../models/User");
 
+// Helper to validate HH:mm format
+const isValidTime = (time) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(time);
+
+// Convert "HH:mm" to minutes
+const timeToMinutes = (time) => {
+    const [hours, minutes] = time.split(":").map(Number);
+    return hours * 60 + minutes;
+};
 
 //? Admin: Create Schedule
 const createSchedule = async (req, res, next) => {
     try {
         const { date, startTime, endTime, trainer } = req.body;
+
+        //? Validate time format
+        if (!isValidTime(startTime) || !isValidTime(endTime)) {
+            return res
+                .status(400)
+                .json({ message: "Invalid time format (HH:mm)" });
+        }
+
+        //? Ensure exactly 2-hour duration
+        const newStart = timeToMinutes(startTime);
+        const newEnd = timeToMinutes(endTime);
+        if (newEnd - newStart !== 120) {
+            return res
+                .status(400)
+                .json({ message: "Class duration must be exactly 2 hours" });
+        }
 
         const trainerExists = await User.findById(trainer);
         if (!trainerExists || trainerExists.role !== "trainer") {
@@ -29,11 +53,9 @@ const createSchedule = async (req, res, next) => {
         });
 
         if (overlappingSchedule) {
-            return res
-                .status(400)
-                .json({
-                    message: "Trainer already has a schedule at this time",
-                });
+            return res.status(400).json({
+                message: "Trainer already has a schedule at this time",
+            });
         }
 
         //? Create schedule
@@ -49,7 +71,6 @@ const createSchedule = async (req, res, next) => {
         next(err);
     }
 };
-
 
 //? Trainer: View Their Schedules
 const getTrainerSchedules = async (req, res, next) => {
